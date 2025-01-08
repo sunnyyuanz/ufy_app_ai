@@ -3,14 +3,11 @@ from openai import OpenAI
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from flask_cors import CORS
-from dotenv import load_dotenv
 import os
 import json
 
 # Initialize Flask app
 app = Flask(__name__)
-
-load_dotenv()
 
 # Enable CORS
 CORS(app)
