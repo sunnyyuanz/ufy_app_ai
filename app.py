@@ -106,15 +106,23 @@ def populate_daily_activities(trip_details):
     }
     ]
 
-    response = chat_model.invoke(
-        messages,
-        functions=functions,
-        function_call={"name": "create_daily_itinerary"}
-    )
+    try:
+        response = chat_model.invoke(
+            messages,
+            functions=functions,
+            function_call={"name": "create_daily_itinerary"}
+        )
+    except Exception as e:
+        print(f"LangChain invoke error: {e}")
+        return jsonify({"error": "Internal error in AI model invocation"}), 500
 
     if response.additional_kwargs.get("function_call"):
-        function_args = json.loads(response.additional_kwargs["function_call"]["arguments"])
-        return function_args["itinerary"]
+        try:
+            function_args = json.loads(response.additional_kwargs["function_call"]["arguments"])
+            return function_args["itinerary"]
+        except json.JSONDecodeError as e:
+            print(f"JSON Decode Error: {e}")
+            print(f"Response text: {response.additional_kwargs["function_call"]["arguments"]}")
     
     return []
 
@@ -155,8 +163,12 @@ def calculate_total_cost(itinerary):
     )
 
     if response.additional_kwargs.get("function_call"):
-        function_args = json.loads(response.additional_kwargs["function_call"]["arguments"])
-        return function_args["itinerary_costs"]
+        try:
+            function_args = json.loads(response.additional_kwargs["function_call"]["arguments"])
+            return function_args["itinerary_costs"]
+        except json.JSONDecodeError as e:
+            print(f"JSON Decode Error: {e}")
+            print(f"Response text: {response.additional_kwargs["function_call"]["arguments"]}")
     
     return {}
 
@@ -216,7 +228,7 @@ def generate_itinerary():
             )
             itinerary["image"] = response.data[0].url
 
-        
+        print(itinerary)
         return jsonify(itinerary)
 
     except Exception as e:
@@ -282,53 +294,60 @@ def update_itinerary():
         )
 
         if response.additional_kwargs.get("function_call"):
-            function_args = json.loads(response.additional_kwargs["function_call"]["arguments"])
-            
-            # Update the itinerary
-            current_itinerary["itinerary"] = function_args["itinerary"]
-            
-            # Update the title based on user suggestion
-            title_update_prompt = f"""
-            Based on this user suggestion: {user_suggestion}
-            And the current title: {current_itinerary.get('title', '')}
-            Should the title be updated? If yes, generate a new title that reflects the changes.
-            If no changes are needed, return the original title.
-            """
-            
-            title_messages = [
-                SystemMessage(content="You are a travel assistant. Help update the trip title if the user's suggestions warrant a change."),
-                HumanMessage(content=title_update_prompt)
-            ]
-            
-            title_functions = [{
-                "name": "update_title",
-                "description": "Update the itinerary title if needed",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string"}
-                    },
-                    "required": ["title"]
-                }
-            }]
-            
-            title_response = chat_model.invoke(
-                title_messages,
-                functions=title_functions,
-                function_call={"name": "update_title"}
-            )
-            
-            if title_response.additional_kwargs.get("function_call"):
-                title_args = json.loads(title_response.additional_kwargs["function_call"]["arguments"])
-                current_itinerary["title"] = title_args["title"]
-            
-            # Recalculate costs
-            current_itinerary["itinerary_costs"] = calculate_total_cost(current_itinerary["itinerary"])
-            print(current_itinerary["itinerary_costs"])
-            
-            return jsonify(current_itinerary)
+            try:
+                function_args = json.loads(response.additional_kwargs["function_call"]["arguments"])
+                 # Update the itinerary
+                current_itinerary["itinerary"] = function_args["itinerary"]
+                
+                # Update the title based on user suggestion
+                title_update_prompt = f"""
+                Based on this user suggestion: {user_suggestion}
+                And the current title: {current_itinerary.get('title', '')}
+                Should the title be updated? If yes, generate a new title that reflects the changes.
+                If no changes are needed, return the original title.
+                """
+                
+                title_messages = [
+                    SystemMessage(content="You are a travel assistant. Help update the trip title if the user's suggestions warrant a change."),
+                    HumanMessage(content=title_update_prompt)
+                ]
+                
+                title_functions = [{
+                    "name": "update_title",
+                    "description": "Update the itinerary title if needed",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "title": {"type": "string"}
+                        },
+                        "required": ["title"]
+                    }
+                }]
+                
+                title_response = chat_model.invoke(
+                    title_messages,
+                    functions=title_functions,
+                    function_call={"name": "update_title"}
+                )
+                
+                if title_response.additional_kwargs.get("function_call"):
+                    try:
+                        title_args = json.loads(title_response.additional_kwargs["function_call"]["arguments"])
+                        current_itinerary["title"] = title_args["title"]
+                    except json.JSONDecodeError as e:
+                        print(f"JSON Decode Error: {e}")
+                        print(f"Response text: {title_response.additional_kwargs["function_call"]["arguments"]}")
+        
 
-        return jsonify({"error": "Failed to update itinerary"}), 400
+                # Recalculate costs
+                current_itinerary["itinerary_costs"] = calculate_total_cost(current_itinerary["itinerary"])
+                print(current_itinerary["itinerary_costs"])
+                
+                return jsonify(current_itinerary)
+            except json.JSONDecodeError as e:
+                print(f"JSON Decode Error: {e}")
+                print(f"Response text: {response.additional_kwargs["function_call"]["arguments"]}")
+                return jsonify({"error": "Failed to update itinerary"}), 400
 
     except Exception as e:
         print(f"Error: {str(e)}")
