@@ -5,17 +5,12 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from flask_cors import CORS
 import os
 import json
-import ssl
 
 # Initialize Flask app
 app = Flask(__name__)
 
 # Enable CORS
 CORS(app)
-
-@app.errorhandler(ssl.SSLError)
-def handle_ssl_error(e):
-    return jsonify({'error': 'SSL connection failed'}), 500
 
 # Configure LangChain with OpenAI API key
 chat_model = ChatOpenAI(
