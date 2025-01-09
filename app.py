@@ -333,6 +333,7 @@ def update_itinerary():
                 
                 if title_response.additional_kwargs.get("function_call"):
                     try:
+                        print("Response text: " + str(title_response.additional_kwargs["function_call"]["arguments"]))
                         title_args = json.loads(title_response.additional_kwargs["function_call"]["arguments"])
                         current_itinerary["title"] = title_args["title"]
                     except json.JSONDecodeError as e:
@@ -348,7 +349,7 @@ def update_itinerary():
                 return jsonify(current_itinerary)
             except json.JSONDecodeError as e:
                 print(f"JSON Decode Error: {e}")
-                print(f"Response text: {response.additional_kwargs["function_call"]["arguments"]}")
+                print("Response text: " + str(response.additional_kwargs["function_call"]["arguments"]))
                 return jsonify({"error": "Failed to update itinerary"}), 400
 
     except Exception as e:
