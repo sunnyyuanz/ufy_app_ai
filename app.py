@@ -122,8 +122,8 @@ def populate_daily_activities(trip_details):
             return function_args["itinerary"]
         except json.JSONDecodeError as e:
             print(f"JSON Decode Error: {e}")
-            print(f"Response text: {response.additional_kwargs["function_call"]["arguments"]}")
-    
+            print("Response text: " + str(response.additional_kwargs["function_call"]["arguments"]))
+
     return []
 
 def calculate_total_cost(itinerary):
@@ -168,7 +168,7 @@ def calculate_total_cost(itinerary):
             return function_args["itinerary_costs"]
         except json.JSONDecodeError as e:
             print(f"JSON Decode Error: {e}")
-            print(f"Response text: {response.additional_kwargs["function_call"]["arguments"]}")
+            print("Response text: " + str(response.additional_kwargs["function_call"]["arguments"]))
     
     return {}
 
@@ -295,6 +295,7 @@ def update_itinerary():
 
         if response.additional_kwargs.get("function_call"):
             try:
+                print("Response text: " + str(response.additional_kwargs["function_call"]["arguments"]))
                 function_args = json.loads(response.additional_kwargs["function_call"]["arguments"])
                  # Update the itinerary
                 current_itinerary["itinerary"] = function_args["itinerary"]
@@ -336,7 +337,8 @@ def update_itinerary():
                         current_itinerary["title"] = title_args["title"]
                     except json.JSONDecodeError as e:
                         print(f"JSON Decode Error: {e}")
-                        print(f"Response text: {title_response.additional_kwargs["function_call"]["arguments"]}")
+                        print("Response text: " + str(title_response.additional_kwargs["function_call"]["arguments"]))
+
         
 
                 # Recalculate costs
